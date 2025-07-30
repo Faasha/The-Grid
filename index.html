@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>The Grid - Digital Scavenger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff41;
+            overflow-x: hidden;
+        }
+
+        .terminal-container {
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #00ff41;
+            border-radius: 8px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 65, 0.3),
+                inset 0 0 20px rgba(0, 255, 65, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .log-entry {
+            padding: 2px 0;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #00ff41;
+            font-family: inherit;
+            font-size: 16px;
+            width: 100%;
+            caret-color: #00ff41;
+        }
+
+        .terminal-input::placeholder {
+            color: #006622;
+        }
+
+        .cyber-glow {
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .cyber-border {
+            position: relative;
+        }
+
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #00ff41, #0088ff, #00ff41);
+            border-radius: 8px;
+            z-index: -1;
+            animation: borderGlow 3s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .grid-pattern {
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .mobile-btn {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            color: #00ff41;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .mobile-btn:hover, .mobile-btn:active {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 1px solid #00ff41;
+            font-size: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .log-entry {
+                font-size: 12px;
+            }
+            .terminal-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen grid-pattern">
+    <!-- Status Bar -->
+    <div class="status-bar p-2 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <span class="cyber-glow text-xs">THE GRID v1.0</span>
+            <span id="connection-status" class="text-gray-500 text-xs">DISCONNECTED</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span id="node-count" class="text-xs">NODES: 0</span>
+            <span class="text-green-400 text-xs">●</span>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-4xl md:text-6xl font-bold cyber-glow mb-2">THE GRID</h1>
+            <p class="text-gray-400 text-sm md:text-base">Digital Scavenger Network Interface</p>
+        </div>
+
+        <!-- Main Grid Display -->
+        <div class="terminal-container cyber-border p-6 mb-4 text-center min-h-[120px] flex items-center justify-center">
+            <div id="game-grid">
+                <p class="text-gray-600 text-xl md:text-2xl">Awaiting Uplink...</p>
+            </div>
+        </div>
+
+        <!-- Mobile Quick Commands -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 md:hidden">
+            <button class="mobile-btn" onclick="executeQuickCommand('scan')">SCAN</button>
+            <button class="mobile-btn" onclick="executeQuickCommand('status')">STATUS</button>
+            <button class="mobile-btn" onclick="executeQuickCommand('help')">HELP</button>
+            <button class="mobile-btn" onclick="executeQuickCommand('clear')">CLEAR</button>
+        </div>
+
+        <!-- Terminal Interface -->
+        <div class="terminal-container cyber-border">
+            <!-- Terminal Header -->
+            <div class="border-b border-green-600 p-3 bg-black bg-opacity-50">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span class="ml-4 text-sm text-gray-400">ghost@thegrid:~$</span>
+                </div>
+            </div>
+
+            <!-- Command Log -->
+            <div id="command-log" class="p-4 h-64 md:h-80 overflow-y-auto flex flex-col-reverse">
+                <div class="log-entry text-green-400">
+                    [SYSTEM] System initialized. Welcome, Ghost. Type 'help' for a list of commands.
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t border-green-600 p-3 bg-black bg-opacity-50 flex items-center space-x-2">
+                <span class="text-green-400 text-sm">$</span>
+                <input 
+                    type="text" 
+                    id="terminal-input" 
+                    class="terminal-input" 
+                    placeholder="Enter command..."
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                />
+            </div>
+        </div>
+
+        <!-- Help Panel (Mobile) -->
+        <div class="mt-4 terminal-container cyber-border p-4 md:hidden">
+            <h3 class="text-green-400 text-sm font-bold mb-2">QUICK REFERENCE:</h3>
+            <div class="text-xs text-gray-400 space-y-1">
+                <div><span class="text-green-400">scan</span> - Find network nodes</div>
+                <div><span class="text-green-400">connect [node]</span> - Connect to node</div>
+                <div><span class="text-green-400">disconnect</span> - Disconnect from node</div>
+                <div><span class="text-green-400">status</span> - Show system status</div>
+                <div><span class="text-green-400">clear</span> - Clear terminal</div>
+                <div><span class="text-green-400">help</span> - Show all commands</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-6 text-gray-500 text-xs">
+            <p>Neural Interface v2.7.4 | Optimized for Termux</p>
+        </div>
+    </div>
+
+<script>
+    // --- DOM Elements ---
+    const terminalInput = document.getElementById('terminal-input');
+    const commandLog = document.getElementById('command-log');
+    const gameGridDisplay = document.getElementById('game-grid');
+    const connectionStatus = document.getElementById('connection-status');
+    const nodeCount = document.getElementById('node-count');
+
+    // --- Game State & Command History ---
+    const commandHistory = [];
+    let historyIndex = 0;
+
+    // Global game state object
+    let gameState = {
+        connectedNode: null,
+        discoveredNodes: [],
+        lastScanTime: 0,
+        score: 0,
+        credits: 100
+    };
+
+    // Variable to hold the reference to the "Processing..." log entry
+    let processingLogEntry = null;
+
+    // Update status bar
+    function updateStatusBar() {
+        connectionStatus.textContent = gameState.connectedNode ? 
+            `CONNECTED: ${gameState.connectedNode}` : 'DISCONNECTED';
+        nodeCount.textContent = `NODES: ${gameState.discoveredNodes.length}`;
+        
+        connectionStatus.className = gameState.connectedNode ? 
+            'text-green-400 text-xs cyber-glow' : 'text-red-400 text-xs';
+    }
+
+    // Quick command function for mobile buttons
+    function executeQuickCommand(command) {
+        terminalInput.value = command;
+        logCommand(command, 'user');
+        processCommand(command);
+        terminalInput.value = '';
+        terminalInput.focus();
+    }
+
+    // --- Enhanced Command Definitions ---
+    const commandMap = {
+        help: {
+            description: "Lists all available commands.",
+            execute: (args) => {
+                const commandList = Object.keys(commandMap).map(cmd => 
+                    `  ${cmd.padEnd(12)} - ${commandMap[cmd].description}`
+                ).join('\n');
+                logCommand(`Available commands:\n${commandList}`, 'system');
+            }
+        },
+        scan: {
+            description: "Scans the network for activity.",
+            execute: (args) => {
+                // Prevent spam scanning
+                const now = Date.now();
+                if (now - gameState.lastScanTime < 3000) {
+                    logCommand("Scanner cooling down. Wait a moment before scanning again.", 'error');
+                    return;
+                }
+                gameState.lastScanTime = now;
+
+                showProcessing(`Initializing quantum scanner...`); 
+                terminalInput.disabled = true;
+                terminalInput.placeholder = "Scanning network...";
+
+                const potentialNodes = [
+                    { name: "NEXUS-01", status: "Online", ping: "23ms", security: "Medium", credits: 50 },
+                    { name: "DATA-VAULT-7", status: "Online", ping: "45ms", security: "High", credits: 100 },
+                    { name: "PROXY-ALPHA", status: "Online", ping: "12ms", security: "Low", credits: 25 },
+                    { name: "ARCHIVE-HUB", status: "Offline", ping: "N/A", security: "N/A", credits: 0 },
+                    { name: "SEC-SERVER-03", status: "Online", ping: "38ms", security: "Very High", credits: 150 },
+                    { name: "DEBUG-CONSOLE", status: "Online", ping: "7ms", security: "Minimal", credits: 10 },
+                    { name: "CRYPTO-MINE", status: "Online", ping: "156ms", security: "High", credits: 200 },
+                    { name: "GHOST-NET", status: "Online", ping: "2ms", security: "Unknown", credits: 75 }
+                ];
+
+                const foundNodes = [];
+                const numberOfNodesToFind = Math.floor(Math.random() * 4) + 2; // 2-5 nodes
+                
+                potentialNodes.sort(() => 0.5 - Math.random());
+                for (let i = 0; i < numberOfNodesToFind && i < potentialNodes.length; i++) {
+                    foundNodes.push(potentialNodes[i]);
+                }
+
+                const scanTime = Math.floor(Math.random() * 2000) + 1500; // 1.5-3.5 seconds
+
+                setTimeout(() => {
+                    if (foundNodes.length > 0) {
+                        let results = `Quantum scan complete. Found ${foundNodes.length} nodes:\n`;
+                        foundNodes.forEach(node => {
+                            results += `  - [${node.name}] ${node.status} | ${node.ping} | Sec: ${node.security}\n`;
+                            if (node.status === "Online" && !gameState.discoveredNodes.includes(node.name)) {
+                                gameState.discoveredNodes.push(node.name);
+                            }
+                        });
+                        logCommand(results.trim(), 'system');
+                    } else {
+                        logCommand("Scan complete. Network appears quiet at this time.", 'system');
+                    }
+                    
+                    updateStatusBar();
+                    hideProcessing();
+                    terminalInput.disabled = false;
+                    terminalInput.placeholder = "Enter command...";
+                    terminalInput.focus();
+                }, scanTime);
+            }
+        },
+        use: {
+            description: "Executes a script. Usage: use <script_name>",
+            execute: (args) => {
+                if (args.length > 0) {
+                    logCommand(`Executing neural script: ${args[0]}...`, 'system');
+                    // Enhanced feedback for script usage
+                    setTimeout(() => {
+                        logCommand(`Script '${args[0]}' executed. No immediate effects detected.`, 'system');
+                    }, 800);
+                } else {
+                    logCommand("Script name required. Usage: use <script_name>", 'error');
+                }
+            }
+        },
+        clear: {
+            description: "Clears the system log.",
+            execute: (args) => {
+                commandLog.innerHTML = '';
+                logCommand("> Neural interface cleared. Welcome back, Ghost.", 'system');
+            }
+        },
+        connect: {
+            description: "Connects to a target node. Usage: connect <node_name>",
+            execute: (args) => {
+                const targetNode = args[0] ? args[0].toUpperCase() : null;
+                
+                if (targetNode) {
+                    if (gameState.discoveredNodes.includes(targetNode) && gameState.connectedNode !== targetNode) {
+                        showProcessing(`Establishing secure uplink to ${targetNode}...`);
+                        terminalInput.disabled = true;
+                        terminalInput.placeholder = `Connecting to ${targetNode}...`;
+
+                        setTimeout(() => {
+                            gameState.connectedNode = targetNode;
+                            logCommand(`Uplink to ${targetNode} established. Neural handshake complete.`, 'system');
+                            hideProcessing();
+                            terminalInput.disabled = false;
+                            terminalInput.placeholder = "Enter command...";
+                            terminalInput.focus();
+                            gameGridDisplay.innerHTML = `
+                                <div class="text-center">
+                                    <p class="text-green-400 text-2xl md:text-3xl cyber-glow mb-2">CONNECTED</p>
+                                    <p class="text-cyan-400 text-lg">${gameState.connectedNode}</p>
+                                    <div class="mt-4 text-xs text-gray-400">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>Signal: Strong</div>
+                                            <div>Latency: ${Math.floor(Math.random() * 50) + 5}ms</div>
+                                            <div>Encryption: AES-256</div>
+                                            <div>Status: Active</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            updateStatusBar();
+                        }, 1800);
+                    } else if (gameState.connectedNode === targetNode) {
+                        logCommand(`Already connected to ${targetNode}.`, 'system');
+                    } else {
+                        logCommand(`Node '${targetNode}' not found. Run 'scan' to discover available nodes.`, 'error');
+                    }
+                } else {
+                     logCommand("Target node required. Usage: connect <node_name>", 'error');
+                }
+            }
+        },
+        disconnect: {
+            description: "Disconnects from the current node.",
+            execute: (args) => {
+                if (gameState.connectedNode) {
+                    logCommand(`Severing uplink to ${gameState.connectedNode}...`, 'system');
+                    gameState.connectedNode = null;
+                    logCommand("Connection terminated. Returning to standby mode.", 'system');
+                    gameGridDisplay.innerHTML = `<p class="text-gray-600 text-xl md:text-2xl">Awaiting Uplink...</p>`;
+                    updateStatusBar();
+                } else {
+                    logCommand("No active connection to terminate.", 'error');
+                }
+            }
+        },
+        status: {
+            description: "Displays current system status.",
+            execute: (args) => {
+                let statusMessage = "NEURAL INTERFACE STATUS:\n";
+                statusMessage += `  - Active Connection: ${gameState.connectedNode || "None"}\n`;
+                statusMessage += `  - Discovered Nodes: ${gameState.discoveredNodes.length}\n`;
+                statusMessage += `  - Credits: ${gameState.credits}\n`;
+                statusMessage += `  - System Time: ${new Date().toLocaleTimeString()}\n`;
+                statusMessage += `  - Interface: Mobile Optimized`;
+                logCommand(statusMessage.trim(), 'system');
+            }
+        },
+        credits: {
+            description: "Shows current credit balance.",
+            execute: (args) => {
+                logCommand(`Current balance: ${gameState.credits} credits`, 'system');
+            }
+        },
+        nodes: {
+            description: "Lists all discovered nodes.",
+            execute: (args) => {
+                if (gameState.discoveredNodes.length > 0) {
+                    let nodeList = "DISCOVERED NODES:\n";
+                    gameState.discoveredNodes.forEach((node, index) => {
+                        const connected = node === gameState.connectedNode ? " [CONNECTED]" : "";
+                        nodeList += `  ${index + 1}. ${node}${connected}\n`;
+                    });
+                    logCommand(nodeList.trim(), 'system');
+                } else {
+                    logCommand("No nodes discovered. Use 'scan' to find network nodes.", 'system');
+                }
+            }
+        }
+    };
+
+    // --- Event Listener for the console ---
+    terminalInput.addEventListener('keydown', function(event) {
+        const command = terminalInput.value.trim();
+
+        if (event.key === 'Enter' && command !== '') {
+            logCommand(command, 'user');
+            processCommand(command);
+            
+            commandHistory.push(command);
+            historyIndex = commandHistory.length;
+            terminalInput.value = '';
+        } 
+        else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                terminalInput.value = commandHistory[historyIndex];
+                terminalInput.setSelectionRange(terminalInput.value.length, terminalInput.value.length);
+            }
+        } 
+        else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                terminalInput.value = commandHistory[historyIndex];
+                terminalInput.setSelectionRange(terminalInput.value.length, terminalInput.value.length);
+            } else {
+                historyIndex = commandHistory.length;
+                terminalInput.value = '';
+            }
+        }
+    });
+
+    function logCommand(text, type = 'user', isProcessing = false) {
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry');
+
+        switch(type) {
+            case 'system':
+                entry.classList.add('text-green-400');
+                entry.textContent = `[SYSTEM] ${text}`;
+                break;
+            case 'error':
+                entry.classList.add('text-red-500');
+                entry.textContent = `[ERROR] ${text}`;
+                break;
+            case 'user':
+            default:
+                entry.classList.add('text-cyan-400');
+                entry.textContent = `> ${text}`;
+                break;
+        }
+        
+        commandLog.insertBefore(entry, commandLog.firstChild);
+        if (isProcessing) {
+            processingLogEntry = entry;
+        }
+    }
+
+    function showProcessing(message) {
+        if (processingLogEntry) {
+            hideProcessing();
+        }
+        logCommand(message, 'system', true);
+    }
+
+    function hideProcessing() {
+        if (processingLogEntry && processingLogEntry.parentNode === commandLog) {
+            commandLog.removeChild(processingLogEntry);
+        }
+        processingLogEntry = null;
+    }
+
+    function processCommand(command) {
+        const parts = command.toLowerCase().split(' ');
+        const primaryAction = parts[0];
+        const args = parts.slice(1);
+
+        if (commandMap[primaryAction]) {
+            commandMap[primaryAction].execute(args);
+        } else {
+            logCommand(`Unknown command: '${primaryAction}'. Type 'help' for available commands.`, 'error');
+        }
+    }
+
+    // Initialize
+    terminalInput.focus();
+    updateStatusBar();
+
+    // Prevent zoom on iOS
+    document.addEventListener('touchstart', function(event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    });
+
+    // Auto-focus input when clicking anywhere on terminal
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('button')) {
+            terminalInput.focus();
+        }
+    });
+</script>
+</body>
+</html>
