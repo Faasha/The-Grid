@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>The Grid - Digital Scavenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Enhanced Game Engine Integration -->
+    <script src="GameMechanics.js"></script>
+    <script src="VisualEffects.js"></script>
+    <script src="AudioManager.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
         
@@ -97,6 +101,134 @@
             box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
         }
 
+        /* Fun Enhancement: New CSS for enhanced features */
+        .progress-bar {
+            background: rgba(0, 255, 65, 0.2);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff41, #00ccff);
+            height: 100%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .combo-indicator {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 15px currentColor;
+            animation: comboGlow 0.5s ease-in-out;
+        }
+
+        @keyframes comboGlow {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .grid-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            padding: 20px;
+        }
+
+        .player-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00ff41;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: #00ff41;
+        }
+
+        .stat-value {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .mission-panel {
+            background: rgba(0, 0, 50, 0.8);
+            border: 1px solid #0099ff;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .mission-title {
+            color: #0099ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .mission-objective {
+            color: #cccccc;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+
+        .enhanced-button {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            color: #00ff41;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 2px;
+        }
+
+        .enhanced-button:hover {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .enhanced-button:active {
+            transform: translateY(0);
+        }
+
+        .alert-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff3366;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: alertPulse 1s infinite;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
         .status-bar {
             background: rgba(0, 0, 0, 0.9);
             border-bottom: 1px solid #00ff41;
@@ -133,11 +265,49 @@
             <p class="text-gray-400 text-sm md:text-base">Digital Scavenger Network Interface</p>
         </div>
 
+        <!-- Enhanced Game Display -->
+        <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <!-- Player Stats Panel -->
+            <div class="player-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Level:</span>
+                    <span class="stat-value" id="player-level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Credits:</span>
+                    <span class="stat-value" id="player-credits">100</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Energy:</span>
+                    <div class="progress-bar w-16">
+                        <div class="progress-fill" id="energy-bar" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">XP:</span>
+                    <div class="progress-bar w-16">
+                        <div class="progress-fill" id="xp-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Mission Panel -->
+            <div class="mission-panel" id="mission-panel">
+                <div class="mission-title" id="mission-title">First Contact</div>
+                <div class="mission-objective" id="mission-objective">• Perform your first network scan</div>
+            </div>
+        </div>
+
         <!-- Main Grid Display -->
-        <div class="terminal-container cyber-border p-6 mb-4 text-center min-h-[120px] flex items-center justify-center">
+        <div class="terminal-container cyber-border p-6 mb-4 text-center min-h-[400px] flex items-center justify-center">
             <div id="game-grid">
                 <p class="text-gray-600 text-xl md:text-2xl">Awaiting Uplink...</p>
             </div>
+        </div>
+        
+        <!-- Combo Display -->
+        <div id="combo-display" class="text-center mb-4" style="display: none;">
+            <span class="combo-indicator" id="combo-text">COMBO x1</span>
         </div>
 
         <!-- Mobile Quick Commands -->
@@ -203,12 +373,107 @@
     </div>
 
 <script>
+    // Enhanced Game Integration - Initialize all systems
+    let gameEngine = null;
+    let visualEffects = null;
+    let audioManager = null;
+    
     // --- DOM Elements ---
     const terminalInput = document.getElementById('terminal-input');
     const commandLog = document.getElementById('command-log');
     const gameGridDisplay = document.getElementById('game-grid');
     const connectionStatus = document.getElementById('connection-status');
     const nodeCount = document.getElementById('node-count');
+    
+    // Enhanced UI elements
+    const playerLevel = document.getElementById('player-level');
+    const playerCredits = document.getElementById('player-credits');
+    const energyBar = document.getElementById('energy-bar');
+    const xpBar = document.getElementById('xp-bar');
+    const missionTitle = document.getElementById('mission-title');
+    const missionObjective = document.getElementById('mission-objective');
+    const comboDisplay = document.getElementById('combo-display');
+    const comboText = document.getElementById('combo-text');
+    
+    // Initialize enhanced systems
+    function initializeEnhancedSystems() {
+        try {
+            // Initialize game engine
+            if (typeof GridGameEngine !== 'undefined') {
+                gameEngine = new GridGameEngine();
+                console.log('Game engine initialized');
+            }
+            
+            // Initialize visual effects
+            if (typeof VisualEffectsEngine !== 'undefined') {
+                visualEffects = new VisualEffectsEngine(document.body);
+                console.log('Visual effects initialized');
+                
+                // Attach grid to display
+                visualEffects.attachGridToElement(gameGridDisplay);
+            }
+            
+            // Initialize audio manager
+            if (typeof AudioManager !== 'undefined') {
+                audioManager = new AudioManager();
+                console.log('Audio manager initialized');
+                
+                // Start ambient sound
+                audioManager.startAmbient('grid_hum');
+            }
+            
+            // Update initial UI
+            updateEnhancedUI();
+            
+        } catch (error) {
+            console.warn('Enhanced systems initialization failed:', error);
+        }
+    }
+    
+    // Update enhanced UI elements
+    function updateEnhancedUI() {
+        if (!gameEngine) return;
+        
+        const state = gameEngine.getGameState();
+        const { player, currentMission, currentCombo } = state;
+        
+        // Update player stats
+        if (playerLevel) playerLevel.textContent = player.level;
+        if (playerCredits) playerCredits.textContent = player.credits;
+        
+        // Update progress bars
+        if (energyBar) {
+            const energyPercent = (player.energy / player.maxEnergy) * 100;
+            energyBar.style.width = `${energyPercent}%`;
+        }
+        
+        if (xpBar) {
+            const xpPercent = (player.experience / player.experienceToNext) * 100;
+            xpBar.style.width = `${xpPercent}%`;
+        }
+        
+        // Update mission info
+        if (currentMission && missionTitle) {
+            missionTitle.textContent = currentMission.title;
+            if (missionObjective && currentMission.objectives) {
+                missionObjective.textContent = `• ${currentMission.objectives[0]}`;
+            }
+        }
+        
+        // Update combo display
+        if (currentCombo > 1 && comboDisplay) {
+            comboDisplay.style.display = 'block';
+            comboText.textContent = `COMBO x${currentCombo}`;
+            comboText.style.color = `hsl(${currentCombo * 30}, 100%, 60%)`;
+        } else if (comboDisplay) {
+            comboDisplay.style.display = 'none';
+        }
+        
+        // Update grid visualization
+        if (visualEffects) {
+            visualEffects.renderGrid(state);
+        }
+    }
 
     // --- Game State & Command History ---
     const commandHistory = [];
